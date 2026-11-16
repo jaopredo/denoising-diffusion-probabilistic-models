@@ -1,10 +1,13 @@
 import argparse
+import os
+from pathlib import Path
 from src.commands import CommandRegistry, CommandManager
+from src.config import ConfigLoader
 
 
 class Program:
-    def __init__(self, parser: argparse.ArgumentParser, command_manager: CommandManager):
-        self.name = "Denoising Diffusion Probabilistic Models"
+    def __init__(self, name: str, parser: argparse.ArgumentParser, command_manager: CommandManager):
+        self.name = name
         self.parser = parser
         self.command_manager = command_manager
 
@@ -31,5 +34,12 @@ if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description="Denoising Diffusion Probabilistic Models")
     command_manager = CommandManager()
 
-    program = Program(argument_parser, command_manager)
+    # Load configuration
+    root = Path(os.getcwd())
+    config_loader = ConfigLoader()
+    config_loader.load(root / "config" / "project.yaml")
+    config = config_loader.get()
+
+    # Run the program with the loaded configuration
+    program = Program(config.experiment.name, argument_parser, command_manager)
     program.run()

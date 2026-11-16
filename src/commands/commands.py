@@ -8,7 +8,7 @@ class Command(ABC, metaclass=CommandRegistry):
     """
     
     @abstractmethod
-    def execute(self, *args: Any, **kwargs: Any):
+    def execute(self):
         """Execute the command with the given arguments.
         """
         pass
@@ -26,9 +26,9 @@ class TrainingCommand(Command):
     """
     __priority = 1  # Comando de treino deve ser executado antes de qualquer outro comando
     
-    def execute(self, *args: Any, **kwargs: Any):
+    def execute(self):
         # Implement the training logic here
-        print("Executing training command with args:", args, "and kwargs:", kwargs)
+        print("Executing training command")
 
     @property
     def priority(self) -> int:
@@ -40,9 +40,9 @@ class GenerateCommand(Command):
     """
     __priority = 2  # Comando de geração deve ser executado após o comando de treino
     
-    def execute(self, *args: Any, **kwargs: Any):
+    def execute(self):
         # Implement the generation logic here
-        print("Executing generate command with args:", args, "and kwargs:", kwargs)
+        print("Executing generate command")
 
     @property
     def priority(self) -> int:
@@ -54,9 +54,9 @@ class EvaluationCommand(Command):
     """
     __priority = 3  # Comando de avaliação deve ser executado após o comando de geração
     
-    def execute(self, *args: Any, **kwargs: Any):
+    def execute(self):
         # Implement the evaluation logic here
-        print("Executing evaluation command with args:", args, "and kwargs:", kwargs)
+        print("Executing evaluation command")
 
     @property
     def priority(self) -> int:

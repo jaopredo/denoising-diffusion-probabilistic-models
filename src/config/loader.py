@@ -1,7 +1,7 @@
 import yaml
 from typing import Optional
-from core import SingletonMeta
-from .schema import Config
+from ..core import SingletonMeta
+from .schema import *
 
 
 class ConfigLoader(metaclass=SingletonMeta):
@@ -12,13 +12,13 @@ class ConfigLoader(metaclass=SingletonMeta):
         with open(config_path, "r") as file:
             config_dict = yaml.safe_load(file)
             self.config = Config(
-                experiment=config_dict["experiment"],
-                data=config_dict["data"],
-                diffusion=config_dict["diffusion"],
-                model=config_dict["model"],
-                training=config_dict["training"],
-                logging=config_dict["logging"],
-                sampling=config_dict["sampling"],
+                experiment=Experiment(**config_dict["experiment"]),
+                data=Data(**config_dict["data"]),
+                diffusion=Diffusion(**config_dict["diffusion"]),
+                model=Model(**config_dict["model"]),
+                training=Training(**config_dict["training"]),
+                logging=Logging(**config_dict["logging"]),
+                sampling=Sampling(**config_dict["sampling"]),
             )
 
     def get(self) -> Config:
