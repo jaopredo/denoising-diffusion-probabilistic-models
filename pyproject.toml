@@ -1,0 +1,14 @@
+[project]
+name = "denoising-diffusion-probabilistic-models"
+version = "0.1.0"
+description = "Repository replicating the model idealized in the paper \"Denoising Diffusion Probabilistic Models\""
+readme = "README.md"
+authors = [
+    { name = "jaopredo", email = "joao.profissional.45@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.5.5",
+    "pyyaml>=6.0.3",
+    "scipy>=1.18.1",
+]
