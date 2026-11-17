@@ -41,24 +41,38 @@ class TrainingCommand(Command):
         model = DiffusionModel().to(device)  # Replace with actual model initialization
 
         # Initializing the optimizer
-        # optimizer = torch.optim.Adam(
-        #     params=model.parameters(),  # Replace with model parameters
-        #     lr=self.config.training.lr
-        # )
+        optimizer = torch.optim.Adam(
+            params=model.parameters(),  # Replace with model parameters
+            lr=self.config.training.lr
+        )
 
         # Initializing the criterium
         criterion = torch.nn.MSELoss()  # To take the difference between the noise and the predicted noise
 
+        num_steps = self.config.training.num_steps
+        step = num_steps
 
-        for step in range(self.config.training.num_steps):
-            # Training logic here
-            model.train()
+        while step <= num_steps:
+            for x, _ in dataloader:
+                # Training logic here
+                model.train()
 
-            # Get a random batch of data and pass to the model in the forward function
-            x, _ = next(iter(dataloader))  # Because of the shuffle=True, we can get a random batch of data each time
-            x = x.to(device)
+                # Zeros the gradients
+                optimizer.zero_grad()
+                
+                x = x.to(device)
 
-            epsilon = model.forward(x)  # Forward pass, the model predicts the noise added to the image
+                noise = torch.randn_like(x)
+
+                epsilon = model.forward(x, noise)  # Forward pass, the model predicts the noise added to the image
+
+                loss = criterion(epsilon, noise)
+                loss.backward()
+                optimizer.step()
+
+            if step > num_steps:
+                break
+            step += 1
         
 
     def _load_dataset_loader(self):

@@ -1,4 +1,5 @@
 import torchvision
+from torchvision import transforms
 import torch
 from typing import Optional, cast
 from pathlib import Path
@@ -13,7 +14,15 @@ class DataloaderBuilderCIFAR10:
         self.download: Optional[bool] = None
         self.batch_size: Optional[int] = None
         self.shuffle: bool = False
-        self.transform = torchvision.transforms.ToTensor()
+        self.num_workers: int = 0
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def set_num_workers(self, num_workers: int):
+        self.num_workers = num_workers
+        return self
 
     def set_root(self, root: str|Path):
         self.root = root
@@ -32,6 +41,7 @@ class DataloaderBuilderCIFAR10:
         self.download = config.data.download
         self.batch_size = config.training.batch_size
         self.shuffle = config.training.shuffle
+        self.num_workers = config.data.num_workers
         return self
 
     def set_batch_size(self, batch_size: int):
@@ -63,6 +73,7 @@ class DataloaderBuilderCIFAR10:
         loader = DataLoader(
             batch_size=self.batch_size,
             shuffle=self.shuffle,
+            num_workers=self.num_workers,
             dataset=data
         )
 

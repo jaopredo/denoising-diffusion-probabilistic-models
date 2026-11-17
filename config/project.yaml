@@ -27,7 +27,7 @@ model:
   time_embed_dim: 512           # tamanho do vetor que representa o passo t; a rede precisa saber o t
 
 training:
-  batch_size: 128               # imagens por passo de gradiente; reduza se faltar memória
+  batch_size: 16                # imagens por passo de gradiente; reduza se faltar memória
   shuffle: true                 # embaralhar o dataset a cada época; ajuda a generalizar
   lr: 2.0e-4                    # taxa de aprendizado do otimizador
   grad_clip: 1.0                # limita o tamanho do gradiente, evitando explosões e treino instável
