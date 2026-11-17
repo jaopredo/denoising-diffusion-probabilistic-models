@@ -45,6 +45,8 @@ class Training:
     num_steps: int
     ema_decay: float
     mixed_precision: bool
+    checkpoint_every: int
+    checkpoint_path: str
 
 
 @dataclass
@@ -52,8 +54,6 @@ class Logging:
     log_every: int
     sample_every: int
     num_samples: int
-    checkpoint_every: int
-    resume_from: Optional[str]
 
 
 @dataclass

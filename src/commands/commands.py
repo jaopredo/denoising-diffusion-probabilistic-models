@@ -34,6 +34,7 @@ class TrainingCommand(Command):
 
     def execute(self):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        cfg_train = self.config.training
 
         # Loading the dataset
         dataloader = self._load_dataset_loader()
@@ -43,16 +44,20 @@ class TrainingCommand(Command):
         # Initializing the optimizer
         optimizer = torch.optim.Adam(
             params=model.parameters(),  # Replace with model parameters
-            lr=self.config.training.lr
+            lr=cfg_train.lr
         )
 
         # Initializing the criterium
         criterion = torch.nn.MSELoss()  # To take the difference between the noise and the predicted noise
 
-        num_steps = self.config.training.num_steps
+        num_steps = cfg_train.num_steps
         step = num_steps
 
+        # Checking if there isn't a checkpoint that didn't finish the training
+
         while step <= num_steps:
+            # Saving checkpoint for possible training interruption
+
             for x, _ in dataloader:
                 # Training logic here
                 model.train()
