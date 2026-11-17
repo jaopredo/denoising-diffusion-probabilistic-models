@@ -1,6 +1,9 @@
-from typing import Any
+import torch
 from abc import ABC, abstractmethod
+from ..models import DiffusionModel
 from .registry import CommandRegistry
+from ..config import ConfigLoader
+from ..data import DataloaderBuilderCIFAR10
 
 
 class Command(ABC, metaclass=CommandRegistry):
@@ -25,10 +28,43 @@ class TrainingCommand(Command):
     """Concrete command class for training the model.
     """
     __priority = 1  # Comando de treino deve ser executado antes de qualquer outro comando
-    
+
+    def __init__(self):
+        self.config = ConfigLoader().get()
+
     def execute(self):
-        # Implement the training logic here
-        print("Executing training command")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Loading the dataset
+        dataloader = self._load_dataset_loader()
+
+        model = DiffusionModel().to(device)  # Replace with actual model initialization
+
+        # Initializing the optimizer
+        # optimizer = torch.optim.Adam(
+        #     params=model.parameters(),  # Replace with model parameters
+        #     lr=self.config.training.lr
+        # )
+
+        # Initializing the criterium
+        criterion = torch.nn.MSELoss()  # To take the difference between the noise and the predicted noise
+
+
+        for step in range(self.config.training.num_steps):
+            # Training logic here
+            model.train()
+
+            # Get a random batch of data and pass to the model in the forward function
+            x, _ = next(iter(dataloader))  # Because of the shuffle=True, we can get a random batch of data each time
+            x = x.to(device)
+
+            epsilon = model.forward(x)  # Forward pass, the model predicts the noise added to the image
+        
+
+    def _load_dataset_loader(self):
+        dataset_builder = DataloaderBuilderCIFAR10().set_from_config(self.config).set_train_to_true()
+        dataset = dataset_builder.build()
+        return dataset
 
     @property
     def priority(self) -> int:

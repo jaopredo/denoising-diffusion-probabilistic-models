@@ -1,17 +1,11 @@
 experiment:
   name: ddpm_cifar10            # nome da execução; vira o nome da pasta e aparece nos logs
   seed: 42                      # fixa a aleatoriedade para você conseguir repetir o resultado
-  device: cuda                  # onde roda o treino (cuda para GPU, cpu para depurar sem GPU)
   output_dir: runs/ddpm_cifar10 # onde salvar checkpoints, amostras e uma cópia deste arquivo
 
 data:
-  dataset: cifar10              # qual dataset usar; trocar aqui muda o experimento inteiro
   root: ./data                  # pasta onde o dataset é baixado e guardado
-  image_size: 32                # altura e largura das imagens; a rede se adapta a isso
-  channels: 3                   # 3 para RGB (CIFAR10), 1 para tons de cinza (MNIST)
-  scale_range: [-1, 1]          # escala dos pixels; [-1, 1] casa com o ruído N(0, I) que a rede vê
-  random_flip: true             # espelha imagens ao acaso (mais variedade); desligar no MNIST,
-                                # porque um dígito espelhado deixa de ser o mesmo dígito
+  download: true                # baixar o dataset se não estiver na pasta root
   num_workers: 4                # processos carregando dados em paralelo, para a GPU não esperar
 
 diffusion:
@@ -34,8 +28,8 @@ model:
 
 training:
   batch_size: 128               # imagens por passo de gradiente; reduza se faltar memória
+  shuffle: true                 # embaralhar o dataset a cada época; ajuda a generalizar
   lr: 2.0e-4                    # taxa de aprendizado do otimizador
-  optimizer: adam               # otimizador usado no treino
   grad_clip: 1.0                # limita o tamanho do gradiente, evitando explosões e treino instável
   num_steps: 800000             # total de passos de treino; reduza muito nos testes iniciais
   ema_decay: 0.9999             # média móvel dos pesos; amostrar com ela dá imagens bem melhores

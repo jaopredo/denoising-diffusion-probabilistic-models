@@ -6,18 +6,13 @@ from typing import Optional
 class Experiment:
     name: str
     seed: int
-    device: str
     output_dir: str
 
 
 @dataclass
 class Data:
-    dataset: str
     root: str
-    image_size: int
-    channels: int
-    scale_range: list[float]
-    random_flip: bool
+    download: bool
     num_workers: int
 
 
@@ -44,8 +39,8 @@ class Model:
 @dataclass
 class Training:
     batch_size: int
+    shuffle: bool
     lr: float
-    optimizer: str
     grad_clip: float
     num_steps: int
     ema_decay: float

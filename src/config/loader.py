@@ -1,4 +1,5 @@
 import yaml
+from pathlib import Path
 from typing import Optional
 from ..core import SingletonMeta
 from .schema import *
@@ -8,7 +9,7 @@ class ConfigLoader(metaclass=SingletonMeta):
     def __init__(self):
         self.config: Optional[Config] = None
 
-    def load(self, config_path: str) -> None:
+    def load(self, config_path: str|Path) -> None:
         with open(config_path, "r") as file:
             config_dict = yaml.safe_load(file)
             self.config = Config(
