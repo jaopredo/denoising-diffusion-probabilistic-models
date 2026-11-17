@@ -7,14 +7,15 @@ from ..config import ConfigLoader
 
 
 class DiffusionModel(torch.nn.Module):
+    betas: torch.Tensor
+    alphas: torch.Tensor
+    alphas_cumprod: torch.Tensor
+
     def __init__(self):
         super().__init__()
 
         # Loading the configuration
         self.config = ConfigLoader().get()
-
-        # Loading the device
-        self.__device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Loading the unet backbone
         self.model = UNet2DModel(
@@ -28,16 +29,16 @@ class DiffusionModel(torch.nn.Module):
         )
 
         # Loading the diffusion process parameters (betas)
-        self.betas = torch.linspace(self.config.diffusion.beta_start, self.config.diffusion.beta_end, self.config.diffusion.T).to(self.__device)
+        betas = torch.linspace(self.config.diffusion.beta_start, self.config.diffusion.beta_end, self.config.diffusion.T)
 
         # Transforming the betas into alphas for computational efficiency
-        self.alphas = 1 - self.betas
-        self.alphas_cumprod = torch.cumprod(self.alphas, dim=0).view(-1, 1, 1, 1)
+        alphas = 1 - betas
+        alphas_cumprod = torch.cumprod(alphas, dim=0).view(-1, 1, 1, 1)
         # Reshaped to (T, 1, 1, 1) for broadcasting during the forward pass
 
-        self.register_buffer("betas", self.betas, False)
-        self.register_buffer("alphas", self.alphas, False)
-        self.register_buffer("alphas_cumprod", self.alphas_cumprod, False)
+        self.register_buffer("betas", betas, False)
+        self.register_buffer("alphas", alphas, False)
+        self.register_buffer("alphas_cumprod", alphas_cumprod, False)
 
     def _diffusion_params(self) -> dict:
         d = self.config.diffusion
@@ -46,6 +47,31 @@ class DiffusionModel(torch.nn.Module):
             "beta_start": d.beta_start,
             "beta_end": d.beta_end
         }
+
+    @torch.no_grad()
+    def generate(self, amount: int = 5) -> torch.Tensor:
+        """Generates a whole new batch of images
+
+        Args:
+            amount (int): How many images will be generated. Defaults to 5
+        """
+        self.eval()
+
+        device = self.alphas.device
+
+        # Sorting the noise that the model will generate
+        x_t = torch.randn((amount, 3, 32, 32), device=device)
+
+        for t in range(self.config.diffusion.T-1, -1, -1):
+            t_batch = torch.full((amount,), t, device=device, dtype=torch.long)
+            z = torch.randn_like(x_t, device=device) if t > 0 else torch.zeros_like(x_t, device=device)
+
+            generated_noise = self.model(x_t, t_batch).sample
+
+            x_t = 1/torch.sqrt(self.alphas[t]) * (x_t - (1 - self.alphas[t])/torch.sqrt(1 - self.alphas_cumprod[t]) * generated_noise ) + torch.sqrt(self.betas[t]) * z
+
+        return ((x_t.clamp(-1, 1) + 1) / 2).cpu()
+
 
     def forward(self, batch: torch.Tensor, noise: torch.Tensor):
         """The forward pass receives a batch of size (batch_size, 3, 32, 32) and returns a batch of the same size. The returned batch represents the
@@ -59,7 +85,7 @@ class DiffusionModel(torch.nn.Module):
             image
         """
         # Sorting the batch of time steps that each image in the batch will be diffused
-        t = torch.randint(0, self.config.diffusion.T, (batch.size(0),), device=self.__device).long()
+        t = torch.randint(0, self.config.diffusion.T, (batch.size(0),), device=self.alphas.device).long()
 
         # Selecting the noise contribution for each image based on its time step
         alpha_t = self.alphas_cumprod[t]

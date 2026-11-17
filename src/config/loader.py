@@ -19,7 +19,6 @@ class ConfigLoader(metaclass=SingletonMeta):
                 model=Model(**config_dict["model"]),
                 training=Training(**config_dict["training"]),
                 logging=Logging(**config_dict["logging"]),
-                sampling=Sampling(**config_dict["sampling"]),
             )
 
     def get(self) -> Config:

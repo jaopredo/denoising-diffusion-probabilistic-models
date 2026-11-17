@@ -1,7 +1,7 @@
 experiment:
   name: ddpm_cifar10            # nome da execução; vira o nome da pasta e aparece nos logs
   seed: 42                      # fixa a aleatoriedade para você conseguir repetir o resultado
-  output_dir: runs/ddpm_cifar10 # onde salvar checkpoints, amostras e uma cópia deste arquivo
+  output_dir: output/ddpm_cifar10 # onde salvar checkpoints, amostras e uma cópia deste arquivo
 
 data:
   root: ./data                  # pasta onde o dataset é baixado e guardado
@@ -27,22 +27,19 @@ model:
   time_embed_dim: 512           # tamanho do vetor que representa o passo t; a rede precisa saber o t
 
 training:
-  batch_size: 16                # imagens por passo de gradiente; reduza se faltar memória
+  batch_size: 32                # imagens por passo de gradiente; reduza se faltar memória
   shuffle: true                 # embaralhar o dataset a cada época; ajuda a generalizar
   lr: 2.0e-4                    # taxa de aprendizado do otimizador
   grad_clip: 1.0                # limita o tamanho do gradiente, evitando explosões e treino instável
   num_steps: 800000             # total de passos de treino; reduza muito nos testes iniciais
   ema_decay: 0.9999             # média móvel dos pesos; amostrar com ela dá imagens bem melhores
   mixed_precision: false        # usar meia precisão acelera, mas pode desestabilizar; comece desligado
-  checkpoint_every: 10000       # a cada quantos passos salvar o modelo, para não perder o treino
+  checkpoint_every: 1000        # a cada quantos passos salvar o modelo, para não perder o treino
   checkpoint_path: ./checkpoints # caminho de um checkpoint para continuar um treino interrompido
+  checkpoint_name: ddpm_cifar10.pt # nome do checkpoint para continuar o treino; se não existir, começa do zero
 
 logging:
   log_every: 100                # a cada quantos passos registrar a loss
   sample_every: 5000            # a cada quantos passos gerar imagens; a loss quase não diz se
                                 # o modelo está funcionando, olhar as amostras diz
-  num_samples: 64               # quantas imagens gerar em cada inspeção visual
-
-sampling:
-  num_samples: 64               # quantas imagens gerar na amostragem final
-  use_ema: true                 # amostrar com os pesos suavizados (EMA), e não os pesos crus
+  num_samples: 10               # quantas imagens gerar em cada inspeção visual

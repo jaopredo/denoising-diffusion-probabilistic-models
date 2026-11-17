@@ -1,4 +1,8 @@
+from ..config.schema import Config
 import torch
+from pathlib import Path
+from datetime import datetime
+from torchvision.utils import save_image
 from abc import ABC, abstractmethod
 from ..models import DiffusionModel
 from .registry import CommandRegistry
@@ -33,6 +37,8 @@ class TrainingCommand(Command):
         self.config = ConfigLoader().get()
 
     def execute(self):
+        print("Executing training command...")
+
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         cfg_train = self.config.training
 
@@ -51,12 +57,23 @@ class TrainingCommand(Command):
         criterion = torch.nn.MSELoss()  # To take the difference between the noise and the predicted noise
 
         num_steps = cfg_train.num_steps
-        step = num_steps
+        step = 0
+        trained = False
 
         # Checking if there isn't a checkpoint that didn't finish the training
+        path = Path(cfg_train.checkpoint_path) / cfg_train.checkpoint_name
+        if path.exists():
+            step, trained = model.load(path, optimizer)
+            print(f"Loading train from step {step}")
 
-        while step <= num_steps:
+
+        while step <= num_steps and not trained:
+            print(f"Training step {step}/{num_steps}...")
+
             # Saving checkpoint for possible training interruption
+            if step % cfg_train.checkpoint_every == 0:
+                print(f"Saving checkpoint at step {step}...")
+                model.save(path, optimizer, step, trained)
 
             for x, _ in dataloader:
                 # Training logic here
@@ -64,7 +81,7 @@ class TrainingCommand(Command):
 
                 # Zeros the gradients
                 optimizer.zero_grad()
-                
+
                 x = x.to(device)
 
                 noise = torch.randn_like(x)
@@ -76,8 +93,11 @@ class TrainingCommand(Command):
                 optimizer.step()
 
             if step > num_steps:
+                trained = True
                 break
             step += 1
+
+        print("Train finished")
         
 
     def _load_dataset_loader(self):
@@ -94,10 +114,36 @@ class GenerateCommand(Command):
     """Concrete command class for generating samples from the model.
     """
     __priority = 2  # Comando de geração deve ser executado após o comando de treino
+
+    def __init__(self):
+        self.config = ConfigLoader().get()
     
     def execute(self):
+        cfg_train = self.config.training
+
+        model = DiffusionModel()
+
         # Implement the generation logic here
-        print("Executing generate command")
+        checkpoint_path = Path(cfg_train.checkpoint_path) / cfg_train.checkpoint_name
+        if checkpoint_path.exists():
+            _ = model.load(checkpoint_path)
+
+        image_batch = model.generate()
+
+        # Folder where the images will be saved (created if it does not exist)
+        output_dir = Path(self.config.experiment.output_dir) / "samples"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # The timestamp avoids overwriting images from previous runs
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # One file per image
+        for i, img in enumerate(image_batch):
+            save_image(img, output_dir / f"{timestamp}_{i:03d}.png")
+
+        # One grid with all the images together
+        save_image(image_batch, output_dir / f"{timestamp}_grid.png", nrow=5)
+
 
     @property
     def priority(self) -> int:

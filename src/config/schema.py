@@ -47,6 +47,7 @@ class Training:
     mixed_precision: bool
     checkpoint_every: int
     checkpoint_path: str
+    checkpoint_name: str
 
 
 @dataclass
@@ -57,12 +58,6 @@ class Logging:
 
 
 @dataclass
-class Sampling:
-    num_samples: int
-    use_ema: bool
-
-
-@dataclass
 class Config:
     experiment: Experiment
     data: Data
@@ -70,4 +65,3 @@ class Config:
     model: Model
     training: Training
     logging: Logging
-    sampling: Sampling
