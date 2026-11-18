@@ -1,6 +1,7 @@
 from ..config.schema import Config
 import torch
 from pathlib import Path
+from typing import Any
 from datetime import datetime
 from torchvision.utils import save_image
 from abc import ABC, abstractmethod
@@ -15,15 +16,15 @@ class Command(ABC, metaclass=CommandRegistry):
     """
     
     @abstractmethod
-    def execute(self):
+    def execute(self, *args: Any, **kwargs: Any):
         """Execute the command with the given arguments.
         """
         pass
 
-    @property
+    @classmethod
     @abstractmethod
-    def priority(self) -> int:
-        """Return the priority of the command. Lower values indicate higher priority.
+    def get_arguments(cls) -> dict[str, Any]:
+        """Returns the argumnts dict structure passed to the argparser
         """
         pass
 
@@ -31,13 +32,13 @@ class Command(ABC, metaclass=CommandRegistry):
 class TrainingCommand(Command):
     """Concrete command class for training the model.
     """
-    __priority = 1  # Comando de treino deve ser executado antes de qualquer outro comando
+    _arguments = {}
 
     def __init__(self):
         self.config = ConfigLoader().get()
 
-    def execute(self):
-        print("Executing training command...")
+    def execute(self, *args: Any, **kwargs: Any):
+        print(f"Executing training command with arguments: args {args}, kwargs {kwargs}")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         cfg_train = self.config.training
@@ -105,20 +106,28 @@ class TrainingCommand(Command):
         dataset = dataset_builder.build()
         return dataset
 
-    @property
-    def priority(self) -> int:
-        return self.__priority
+    @classmethod
+    def get_arguments(cls) -> dict[str, Any]:
+        return cls._arguments
 
 
 class GenerateCommand(Command):
     """Concrete command class for generating samples from the model.
     """
-    __priority = 2  # Comando de geração deve ser executado após o comando de treino
+
+    _arguments = {
+        "test_argument": {
+            "type": str,
+            "required": True
+        }
+    }
 
     def __init__(self):
         self.config = ConfigLoader().get()
     
-    def execute(self):
+    def execute(self, *args: Any, **kwargs: Any):
+        print(f"Executing generate command with aarguments: args {args}, kwargs {kwargs}")
+
         cfg_train = self.config.training
 
         model = DiffusionModel()
@@ -144,21 +153,26 @@ class GenerateCommand(Command):
         # One grid with all the images together
         save_image(image_batch, output_dir / f"{timestamp}_grid.png", nrow=5)
 
-
-    @property
-    def priority(self) -> int:
-        return self.__priority
+    @classmethod
+    def get_arguments(cls) -> dict[str, Any]:
+        return cls._arguments
 
 
 class EvaluationCommand(Command):
     """Concrete command class for evaluating the model.
     """
-    __priority = 3  # Comando de avaliação deve ser executado após o comando de geração
-    
-    def execute(self):
-        # Implement the evaluation logic here
-        print("Executing evaluation command")
 
-    @property
-    def priority(self) -> int:
-        return self.__priority
+    _arguments = {
+        "test_argument": {
+            "type": str,
+            "required": True
+        }
+    }
+    
+    def execute(self, *args: Any, **kwargs: Any):
+        # Implement the evaluation logic here
+        print(f"Executing evaluation command with arguments: args {args}, kwargs {kwargs}")
+
+    @classmethod
+    def get_arguments(cls) -> dict[str, Any]:
+        return cls._arguments
