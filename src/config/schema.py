@@ -46,8 +46,6 @@ class Training:
     ema_decay: float
     mixed_precision: bool
     checkpoint_every: int
-    checkpoint_path: str
-    checkpoint_name: str
 
 
 @dataclass
