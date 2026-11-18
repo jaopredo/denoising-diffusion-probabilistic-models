@@ -31,15 +31,13 @@ training:
   shuffle: true                 # embaralhar o dataset a cada época; ajuda a generalizar
   lr: 2.0e-4                    # taxa de aprendizado do otimizador
   grad_clip: 1.0                # limita o tamanho do gradiente, evitando explosões e treino instável
-  num_steps: 800000             # total de passos de treino; reduza muito nos testes iniciais
+  num_steps: 100000             # total de passos de treino; reduza muito nos testes iniciais
   ema_decay: 0.9999             # média móvel dos pesos; amostrar com ela dá imagens bem melhores
   mixed_precision: false        # usar meia precisão acelera, mas pode desestabilizar; comece desligado
-  checkpoint_every: 1000        # a cada quantos passos salvar o modelo, para não perder o treino
-  checkpoint_path: ./checkpoints # caminho de um checkpoint para continuar um treino interrompido
-  checkpoint_name: ddpm_cifar10.pt # nome do checkpoint para continuar o treino; se não existir, começa do zero
+  checkpoint_every: 100        # a cada quantos passos salvar o modelo, para não perder o treino
 
 logging:
   log_every: 100                # a cada quantos passos registrar a loss
-  sample_every: 5000            # a cada quantos passos gerar imagens; a loss quase não diz se
+  sample_every: 1000            # a cada quantos passos gerar imagens; a loss quase não diz se
                                 # o modelo está funcionando, olhar as amostras diz
   num_samples: 10               # quantas imagens gerar em cada inspeção visual

@@ -102,10 +102,6 @@ class DiffusionModel(torch.nn.Module):
         optimizer parameter and the step parameter. If optimizer is provided, but step is not provided, then the
         training will be restarted from the start
         """
-        if not isinstance(path, Path):
-            path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
         checkpoint = {
             "model": self.model.state_dict(),
             "diffusion": self._diffusion_params(),

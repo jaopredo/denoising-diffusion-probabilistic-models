@@ -1,3 +1,10 @@
+import csv
+
+from os.path import exists
+from loguru import logger
+
+from torch._prims_common import check
+
 from ..config.schema import Config
 import torch
 from pathlib import Path
@@ -32,16 +39,23 @@ class Command(ABC, metaclass=CommandRegistry):
 class TrainingCommand(Command):
     """Concrete command class for training the model.
     """
-    _arguments = {}
+    _arguments = {
+        "checkpoint": {
+            "type": str,
+            "required": False
+        }
+    }
 
     def __init__(self):
         self.config = ConfigLoader().get()
 
     def execute(self, *args: Any, **kwargs: Any):
-        print(f"Executing training command with arguments: args {args}, kwargs {kwargs}")
+        logger.info(f"Executing training command with arguments: args {args}, kwargs {kwargs}")
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         cfg_train = self.config.training
+        cfg_logging = self.config.logging
 
         # Loading the dataset
         dataloader = self._load_dataset_loader()
@@ -58,23 +72,42 @@ class TrainingCommand(Command):
         criterion = torch.nn.MSELoss()  # To take the difference between the noise and the predicted noise
 
         num_steps = cfg_train.num_steps
-        step = 0
+        step = 1
         trained = False
 
-        # Checking if there isn't a checkpoint that didn't finish the training
-        path = Path(cfg_train.checkpoint_path) / cfg_train.checkpoint_name
-        if path.exists():
-            step, trained = model.load(path, optimizer)
-            print(f"Loading train from step {step}")
+        # Creating the generic output path and its branches
+        output_path = Path(self.config.experiment.output_dir)
+
+        paths = {
+            "samples": output_path / "samples",
+            "checkpoints": output_path / "checkpoints",
+            "loss": output_path / "loss"
+        }
+
+        # Getting the last checkpoint if the user passes in the kwargs
+        if kwargs.get("checkpoint"):
+            checkpoint_name = kwargs["checkpoint"]
+            checkpoint_path = paths["checkpoints"] / checkpoint_name
+
+            if checkpoint_path.exists():
+                step, trained = model.load(checkpoint_path, optimizer)
+                logger.info(f"Loading train from step {step}")
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            checkpoint_name = f"{self.config.experiment.name}-{timestamp}"
+            checkpoint_path = paths["checkpoints"] / checkpoint_name
+
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+        loss_history: list[float] = []
 
 
         while step <= num_steps and not trained:
-            print(f"Training step {step}/{num_steps}...")
-
             # Saving checkpoint for possible training interruption
             if step % cfg_train.checkpoint_every == 0:
-                print(f"Saving checkpoint at step {step}...")
-                model.save(path, optimizer, step, trained)
+                logger.info(f"Saving checkpoint at step {step}...")
+                model.save(checkpoint_path, optimizer, step, trained)
 
             for x, _ in dataloader:
                 # Training logic here
@@ -91,15 +124,41 @@ class TrainingCommand(Command):
 
                 loss = criterion(epsilon, noise)
                 loss.backward()
+                loss_history.append(loss.item())
                 optimizer.step()
+
+            if step % cfg_logging.log_every == 0:
+                logger.info(f"Registered Loss: {loss_history[-1]}")
+                self._save_loss_history(loss_history, paths["loss"])
+
+            if step % cfg_logging.sample_every == 0:
+                logger.info(f"Generating new samples on the actual weights")
+                image_batch = model.generate(cfg_logging.num_samples)
+
+                # One grid with all the images together
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                save_image(image_batch, paths["samples"] / f"{timestamp}_grid.png", nrow=cfg_logging.num_samples)
+
 
             if step > num_steps:
                 trained = True
                 break
             step += 1
+    
+    def _save_loss_history(self, loss_history: list[float], path: str | Path):
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
 
-        print("Train finished")
-        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        loss_file_name = f"loss-{timestamp}.csv"
+
+        with open(path / loss_file_name, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["epoch", "loss"])
+
+            for epoch, loss in enumerate(loss_history, start=1):
+                writer.writerow([epoch, loss])
+
 
     def _load_dataset_loader(self):
         dataset_builder = DataloaderBuilderCIFAR10().set_from_config(self.config).set_train_to_true()
