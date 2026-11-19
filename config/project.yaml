@@ -41,3 +41,4 @@ logging:
   sample_every: 1000            # a cada quantos passos gerar imagens; a loss quase não diz se
                                 # o modelo está funcionando, olhar as amostras diz
   num_samples: 10               # quantas imagens gerar em cada inspeção visual
+  show_steps_every: 10          # a cada quantos passos eu registro em qual passo o treino está

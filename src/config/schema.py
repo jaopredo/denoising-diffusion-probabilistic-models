@@ -53,6 +53,7 @@ class Logging:
     log_every: int
     sample_every: int
     num_samples: int
+    show_steps_every: int
 
 
 @dataclass

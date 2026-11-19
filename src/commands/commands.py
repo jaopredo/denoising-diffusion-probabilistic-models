@@ -109,6 +109,9 @@ class TrainingCommand(Command):
                 logger.info(f"Saving checkpoint at step {step}...")
                 model.save(checkpoint_path, optimizer, step, trained)
 
+            if step % cfg_logging.show_steps_every == 0:
+                logger.info(f"Step {step}/{num_steps}")
+
             for x, _ in dataloader:
                 # Training logic here
                 model.train()
@@ -175,9 +178,15 @@ class GenerateCommand(Command):
     """
 
     _arguments = {
-        "test_argument": {
+        "checkpoint": {
             "type": str,
             "required": True
+        },
+
+        "amount": {
+            "type": int,
+            "required": False,
+            "default": 5
         }
     }
 
@@ -185,18 +194,32 @@ class GenerateCommand(Command):
         self.config = ConfigLoader().get()
     
     def execute(self, *args: Any, **kwargs: Any):
-        print(f"Executing generate command with aarguments: args {args}, kwargs {kwargs}")
+        logger.info(f"Executing generate command with arguments: args {args}, kwargs {kwargs}")
 
         cfg_train = self.config.training
 
         model = DiffusionModel()
 
         # Implement the generation logic here
-        checkpoint_path = Path(cfg_train.checkpoint_path) / cfg_train.checkpoint_name
+        output_path = Path(self.config.experiment.output_dir)
+
+        paths = {
+            "samples": output_path / "samples",
+            "checkpoints": output_path / "checkpoints",
+            "loss": output_path / "loss"
+        }
+
+        checkpoint_name = kwargs["checkpoint"]
+        checkpoint_path = paths["checkpoints"] / checkpoint_name
+
         if checkpoint_path.exists():
             _ = model.load(checkpoint_path)
+        else:
+            raise ValueError("Pasta de outputs não existe, o checkpoint passado não pode ser encontrado")
 
-        image_batch = model.generate()
+        image_batch_size = kwargs["amount"]
+
+        image_batch = model.generate(image_batch_size)
 
         # Folder where the images will be saved (created if it does not exist)
         output_dir = Path(self.config.experiment.output_dir) / "samples"
@@ -210,7 +233,10 @@ class GenerateCommand(Command):
             save_image(img, output_dir / f"{timestamp}_{i:03d}.png")
 
         # One grid with all the images together
-        save_image(image_batch, output_dir / f"{timestamp}_grid.png", nrow=5)
+        save_image(image_batch, output_dir / f"{timestamp}_grid.png", nrow=image_batch_size)
+
+        logger.success(f"Diffusion Model generated all {image_batch_size} images successfully")
+        logger.success(f"Images stored in path {output_dir.resolve()}")
 
     @classmethod
     def get_arguments(cls) -> dict[str, Any]:
