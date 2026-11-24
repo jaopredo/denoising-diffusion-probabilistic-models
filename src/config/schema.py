@@ -8,6 +8,10 @@ class Experiment:
     seed: int
     output_dir: str
 
+    samples_dir_name: str
+    checkpoints_dir_name: str
+    loss_dir_name: str
+
 
 @dataclass
 class Data:
@@ -19,11 +23,8 @@ class Data:
 @dataclass
 class Diffusion:
     T: int
-    beta_schedule: str
     beta_start: float
     beta_end: float
-    sigma_type: str
-    predict: str
 
 
 @dataclass
@@ -43,8 +44,6 @@ class Training:
     lr: float
     grad_clip: float
     num_steps: int
-    ema_decay: float
-    mixed_precision: bool
     checkpoint_every: int
 
 

@@ -3,6 +3,10 @@ experiment:
   seed: 42                      # fixa a aleatoriedade para você conseguir repetir o resultado
   output_dir: output/ddpm_cifar10 # onde salvar checkpoints, amostras e uma cópia deste arquivo
 
+  samples_dir_name: samples
+  checkpoints_dir_name: checkpoints
+  loss_dir_name: loss
+
 data:
   root: ./data                  # pasta onde o dataset é baixado e guardado
   download: true                # baixar o dataset se não estiver na pasta root
@@ -10,13 +14,8 @@ data:
 
 diffusion:
   T: 1000                       # número de passos de ruído; passos pequenos mantêm o reverso gaussiano
-  beta_schedule: linear         # forma do cronograma de ruído; deixa testar o cosseno depois
   beta_start: 1.0e-4            # ruído no primeiro passo (muito pequeno, para destruir pouco no início)
   beta_end: 0.02                # ruído no último passo (ainda pequeno, para manter cada passo suave)
-  sigma_type: beta              # variância do reverso: beta usa a do forward, beta_tilde usa a do
-                                # posterior; permite reproduzir essa comparação do artigo
-  predict: epsilon              # o que a rede prevê: o ruído (padrão do artigo), a média ou o x0;
-                                # permite reproduzir a ablação da Seção 4
 
 model:
   base_channels: 128            # largura da U-Net; controla o tamanho do modelo e o custo
@@ -32,8 +31,6 @@ training:
   lr: 2.0e-4                    # taxa de aprendizado do otimizador
   grad_clip: 1.0                # limita o tamanho do gradiente, evitando explosões e treino instável
   num_steps: 100000             # total de passos de treino; reduza muito nos testes iniciais
-  ema_decay: 0.9999             # média móvel dos pesos; amostrar com ela dá imagens bem melhores
-  mixed_precision: false        # usar meia precisão acelera, mas pode desestabilizar; comece desligado
   checkpoint_every: 100        # a cada quantos passos salvar o modelo, para não perder o treino
 
 logging:

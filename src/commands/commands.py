@@ -16,6 +16,7 @@ from ..models import DiffusionModel
 from .registry import CommandRegistry
 from ..config import ConfigLoader
 from ..data import DataloaderBuilderCIFAR10
+from ..utils import get_outputs_paths
 
 
 class Command(ABC, metaclass=CommandRegistry):
@@ -49,6 +50,8 @@ class TrainingCommand(Command):
     def __init__(self):
         self.config = ConfigLoader().get()
 
+        self.paths = get_outputs_paths()
+
     def execute(self, *args: Any, **kwargs: Any):
         logger.info(f"Executing training command with arguments: args {args}, kwargs {kwargs}")
 
@@ -75,19 +78,10 @@ class TrainingCommand(Command):
         step = 1
         trained = False
 
-        # Creating the generic output path and its branches
-        output_path = Path(self.config.experiment.output_dir)
-
-        paths = {
-            "samples": output_path / "samples",
-            "checkpoints": output_path / "checkpoints",
-            "loss": output_path / "loss"
-        }
-
         # Getting the last checkpoint if the user passes in the kwargs
         if kwargs.get("checkpoint"):
             checkpoint_name = kwargs["checkpoint"]
-            checkpoint_path = paths["checkpoints"] / checkpoint_name
+            checkpoint_path = self.paths["checkpoints"] / checkpoint_name
 
             if checkpoint_path.exists():
                 step, trained = model.load(checkpoint_path, optimizer)
@@ -95,9 +89,7 @@ class TrainingCommand(Command):
         else:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             checkpoint_name = f"{self.config.experiment.name}-{timestamp}"
-            checkpoint_path = paths["checkpoints"] / checkpoint_name
-
-        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+            checkpoint_path = self.paths["checkpoints"] / checkpoint_name
 
 
         loss_history: list[float] = []
@@ -132,7 +124,7 @@ class TrainingCommand(Command):
 
             if step % cfg_logging.log_every == 0:
                 logger.info(f"Registered Loss: {loss_history[-1]}")
-                self._save_loss_history(loss_history, paths["loss"])
+                self._save_loss_history(loss_history, self.paths["loss"])
 
             if step % cfg_logging.sample_every == 0:
                 logger.info(f"Generating new samples on the actual weights")
@@ -140,7 +132,7 @@ class TrainingCommand(Command):
 
                 # One grid with all the images together
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                save_image(image_batch, paths["samples"] / f"{timestamp}_grid.png", nrow=cfg_logging.num_samples)
+                save_image(image_batch, self.paths["samples"] / f"{timestamp}_grid.png", nrow=cfg_logging.num_samples)
 
 
             if step > num_steps:
@@ -192,6 +184,8 @@ class GenerateCommand(Command):
 
     def __init__(self):
         self.config = ConfigLoader().get()
+
+        self.paths = get_outputs_paths()
     
     def execute(self, *args: Any, **kwargs: Any):
         logger.info(f"Executing generate command with arguments: args {args}, kwargs {kwargs}")
@@ -201,24 +195,14 @@ class GenerateCommand(Command):
         model = DiffusionModel()
 
         # Implement the generation logic here
-        output_path = Path(self.config.experiment.output_dir)
-
-        paths = {
-            "samples": output_path / "samples",
-            "checkpoints": output_path / "checkpoints",
-            "loss": output_path / "loss"
-        }
+        
 
         checkpoint_name = kwargs["checkpoint"]
-        checkpoint_path = paths["checkpoints"] / checkpoint_name
+        checkpoint_path = self.paths["checkpoints"] / checkpoint_name
 
-        if checkpoint_path.exists():
-            _ = model.load(checkpoint_path)
-        else:
-            raise ValueError("Pasta de outputs não existe, o checkpoint passado não pode ser encontrado")
+        _ = model.load(checkpoint_path)
 
         image_batch_size = kwargs["amount"]
-
         image_batch = model.generate(image_batch_size)
 
         # Folder where the images will be saved (created if it does not exist)
@@ -247,12 +231,7 @@ class EvaluationCommand(Command):
     """Concrete command class for evaluating the model.
     """
 
-    _arguments = {
-        "test_argument": {
-            "type": str,
-            "required": True
-        }
-    }
+    _arguments = {}
     
     def execute(self, *args: Any, **kwargs: Any):
         # Implement the evaluation logic here
