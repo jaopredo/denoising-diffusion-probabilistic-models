@@ -9,6 +9,8 @@ experiment:
 
 data:
   root: ./data                  # pasta onde o dataset é baixado e guardado
+  image_size: 32                # tamanho da imagem do dataset
+  image_channels: 3             # quantos canais as imagens do dataset possuem
   download: true                # baixar o dataset se não estiver na pasta root
   num_workers: 4                # processos carregando dados em paralelo, para a GPU não esperar
 
@@ -21,7 +23,6 @@ model:
   base_channels: 128            # largura da U-Net; controla o tamanho do modelo e o custo
   channel_mult: [1, 2, 2, 2]    # como a largura cresce a cada resolução da U-Net
   num_res_blocks: 2             # blocos residuais por resolução; mais blocos, mais capacidade
-  attention_resolutions: [16]   # em quais resoluções usar atenção (cara, então só em algumas)
   dropout: 0.1                  # regularização, para o modelo não decorar o conjunto de treino
   time_embed_dim: 512           # tamanho do vetor que representa o passo t; a rede precisa saber o t
 

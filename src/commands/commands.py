@@ -119,6 +119,7 @@ class TrainingCommand(Command):
 
                 loss = criterion(epsilon, noise)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=cfg_train.grad_clip)
                 loss_history.append(loss.item())
                 optimizer.step()
 

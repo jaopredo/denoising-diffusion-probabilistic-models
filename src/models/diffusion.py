@@ -18,15 +18,7 @@ class DiffusionModel(torch.nn.Module):
         self.config = ConfigLoader().get()
 
         # Loading the unet backbone
-        self.model = UNet2DModel(
-            sample_size=32,  # CIFAR-10 images are 32x32
-            in_channels=3,   # RGB images
-            out_channels=3,  # Predicting noise for RGB images
-            layers_per_block=2,
-            block_out_channels=(64, 128, 256),
-            down_block_types=("DownBlock2D", "DownBlock2D", "DownBlock2D"),
-            up_block_types=("UpBlock2D", "UpBlock2D", "UpBlock2D"),
-        )
+        self.model = self._build_unet()
 
         # Loading the diffusion process parameters (betas)
         betas = torch.linspace(self.config.diffusion.beta_start, self.config.diffusion.beta_end, self.config.diffusion.T)
@@ -39,6 +31,26 @@ class DiffusionModel(torch.nn.Module):
         self.register_buffer("betas", betas, False)
         self.register_buffer("alphas", alphas, False)
         self.register_buffer("alphas_cumprod", alphas_cumprod, False)
+
+    def _build_unet(self) -> UNet2DModel:
+        m = self.config.model
+        d = self.config.data
+
+        block_out_channels = tuple(m.base_channels * mult for mult in m.channel_mult)
+        n_levels = len(block_out_channels)
+
+        return UNet2DModel(
+            sample_size=d.image_size,
+            in_channels=d.image_channels,
+            out_channels=d.image_channels,  # Predicting noise, so same channels as the input
+            layers_per_block=m.num_res_blocks,
+            block_out_channels=block_out_channels,
+            down_block_types=("DownBlock2D",) * n_levels,
+            up_block_types=("UpBlock2D",) * n_levels,
+            add_attention=False,  # Removes the attention of the middle block too
+            dropout=m.dropout,
+            time_embedding_dim=m.time_embed_dim,
+        )
 
     def _diffusion_params(self) -> dict:
         d = self.config.diffusion

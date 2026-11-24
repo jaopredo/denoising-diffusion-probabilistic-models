@@ -18,6 +18,8 @@ class Data:
     root: str
     download: bool
     num_workers: int
+    image_size: int
+    image_channels: int
 
 
 @dataclass
@@ -32,7 +34,6 @@ class Model:
     base_channels: int
     channel_mult: list[int]
     num_res_blocks: int
-    attention_resolutions: list[int]
     dropout: float
     time_embed_dim: int
 
